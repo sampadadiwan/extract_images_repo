@@ -18,4 +18,4 @@ ENV PORT=8000
 
 # Expose & start
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn extractor_api_lazyprod_ready:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2"]
+CMD ["sh","-c","exec uvicorn extractor_api_lazyprod_ready:app --host 0.0.0.0 --port ${PORT:-8080} --workers 2 --access-log --proxy-headers --forwarded-allow-ips='*'"]
