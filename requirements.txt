@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+numpy
+opencv-python-headless
+pillow
+pytesseract
+google-api-python-client
+google-auth
+google-auth-oauthlib
