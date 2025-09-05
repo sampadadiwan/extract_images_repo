@@ -14,8 +14,8 @@ COPY . /app
 
 # Tesseract path + runtime port
 ENV TESSERACT_CMD=/usr/bin/tesseract
-ENV PORT=8000
+ENV PORT=8080
 
 # Expose & start
-EXPOSE 8000
+EXPOSE 8080
 CMD ["sh","-c","exec uvicorn extractor_api_lazyprod_ready:app --host 0.0.0.0 --port ${PORT:-8080} --workers 2 --access-log --proxy-headers --forwarded-allow-ips='*'"]
