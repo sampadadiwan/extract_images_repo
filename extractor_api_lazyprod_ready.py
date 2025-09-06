@@ -46,6 +46,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.errors import HttpError
 
 # --- import your cropper (instrumented) ---
 from extract_core import extract_crops_streamlit, configure_debug as core_configure_debug
@@ -236,24 +237,45 @@ MAKE_PUBLIC = os.environ.get("MAKE_PUBLIC", "").lower() in ("1", "true", "yes")
 def upload_png_to_drive(png_bytes: bytes, filename: str, folder_id: Optional[str]) -> str:
     drive, _ = get_services()
     media = MediaIoBaseUpload(io.BytesIO(png_bytes), mimetype="image/png", resumable=False)
+
+    parent_id = (folder_id or os.environ.get("DRIVE_FOLDER_ID", "")).strip() or None
     metadata: Dict[str, Any] = {"name": filename, "mimeType": "image/png"}
-    fid = folder_id or DRIVE_FOLDER_ID
-    if fid:
-        metadata["parents"] = [fid]
-    file = drive.files().create(body=metadata, media_body=media, fields="id,webViewLink,webContentLink").execute()
+    if parent_id:
+        metadata["parents"] = [parent_id]
+
+    try:
+        file = drive.files().create(
+            body=metadata,
+            media_body=media,
+            fields="id,name,parents,owners(emailAddress,displayName),driveId,webViewLink,webContentLink",
+            supportsAllDrives=True,   # <-- important for Shared Drives
+        ).execute()
+    except HttpError as e:
+        api_logger.error(f"[DRIVE] create failed for {filename} in parent={parent_id!r}: {e}")
+        raise
+
     file_id = file.get("id")
+    owners = file.get("owners", [])
+    owner_email = owners[0].get("emailAddress") if owners else "?"
     link = file.get("webViewLink") or file.get("webContentLink") or f"https://drive.google.com/file/d/{file_id}/view"
 
-    if MAKE_PUBLIC:
+    api_logger.debug(
+        "[DRIVE] uploaded name=%r id=%s parents=%s driveId=%s owner=%s link=%s",
+        file.get("name"), file_id, file.get("parents"), file.get("driveId"), owner_email, _safe_url(link)
+    )
+
+    # Optional public share
+    if os.environ.get("MAKE_PUBLIC", "").lower() in ("1","true","yes"):
         try:
             drive.permissions().create(
                 fileId=file_id,
                 body={"role": "reader", "type": "anyone"},
+                supportsAllDrives=True,
             ).execute()
-        except Exception as e:
-            api_logger.warning(f"[DRIVE] Could not make public: {e}")
+            api_logger.debug("[DRIVE] made public (anyone with link)")
+        except HttpError as e:
+            api_logger.warning(f"[DRIVE] make public failed: {e}")
 
-    api_logger.debug(f"[DRIVE] uploaded {filename} -> {link}")
     return link
 
 def append_rows_to_sheet(rows: List[List[Any]]):
