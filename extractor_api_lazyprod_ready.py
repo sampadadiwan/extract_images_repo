@@ -184,13 +184,19 @@ def _safe_url(u: str, keep_query: bool = False, maxlen: int = 140) -> str:
         return "<url>"
 
 
-def _bytes_from_url(url: str, timeout: int = 60) -> bytes:
-    t0 = time.time()
+def _bytes_from_url(url: str, timeout: int = 15) -> bytes:
+    safe = _safe_url(url)
+    api_logger.debug(f"[HTTP] GET start {safe} timeout={timeout}s")
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = resp.read()
-    api_logger.debug(f"[HTTP] GET { _safe_url(url) } -> {len(data)} bytes in {(time.time()-t0)*1000.0:.1f} ms")
-    return data
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = resp.read()
+        api_logger.debug(f"[HTTP] GET ok {safe} -> {len(data)} bytes")
+        return data
+    except Exception as e:
+        api_logger.error(f"[HTTP] GET fail {safe}: {e}")
+        raise
+
 
 
 def _pil_to_png_bytes(img: Image.Image) -> bytes:
