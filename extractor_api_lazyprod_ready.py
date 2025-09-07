@@ -402,7 +402,7 @@ def process_convertapi_json(
 
             page_num = _page_num_from_filename(f.FileName)
             if not crops:
-                rows.append([pdf_name, page_num, -1, "NO_CROPS"])
+                continue 
             else:
                 for ci, rgb in enumerate(crops, start=1):
                     pil = Image.fromarray(rgb)
