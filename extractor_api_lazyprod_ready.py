@@ -162,6 +162,40 @@ def _require_auth(authorization: Optional[str]):
     if token != API_TOKEN:
         raise HTTPException(status_code=403, detail="Invalid token")
 
+def _tab_from_range(rng: str) -> str:
+    """Extract tab name from A1-style range like 'Sheet1!A:D' or just 'Sheet1'."""
+    tab = rng.split("!", 1)[0].strip()
+    # Google Sheets API doesn't want quotes around tab names
+    return tab.strip("'").strip('"')
+
+def _end_col_letter(n_cols: int) -> str:
+    """A->Z only (we need 4 cols)."""
+    return chr(ord("A") + n_cols - 1)
+
+def ensure_sheet_header():
+    """Create/overwrite the first row with the required header if missing or different."""
+    if not SHEET_ID:
+        return
+    _, sheets = get_services()
+    tab = _tab_from_range(SHEET_RANGE)
+    header_range = f"{tab}!A1:{_end_col_letter(len(SHEET_HEADER))}1"
+
+    res = sheets.spreadsheets().values().get(
+        spreadsheetId=SHEET_ID, range=header_range
+    ).execute()
+    values = res.get("values", [])
+
+    current = [c.strip() for c in (values[0] if values else [])]
+    if current != SHEET_HEADER:
+        sheets.spreadsheets().values().update(
+            spreadsheetId=SHEET_ID,
+            range=header_range,
+            valueInputOption="RAW",
+            body={"values": [SHEET_HEADER]},
+        ).execute()
+        api_logger.debug(f"[SHEETS] wrote header to {header_range}: {SHEET_HEADER}")
+
+
 # ── Models ───────────────────────────────────────────────────────────────────
 class FileItem(BaseModel):
     FileName: str
