@@ -89,6 +89,22 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
 
+# ── Google helpers (Drive upload + Sheets append) ────────────────────────────
+SHEET_ID = os.environ.get("SHEET_ID", "").strip()
+SHEET_RANGE = os.environ.get("SHEET_RANGE", "Sheet1!A:D")
+DRIVE_FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID", "").strip()
+MAKE_PUBLIC = os.environ.get("MAKE_PUBLIC", "").lower() in ("1", "true", "yes")
+
+# Defaults for this build: API writes the Sheet & returns 204 No Content
+WRITE_TO_SHEETS_FROM_API = os.environ.get("WRITE_TO_SHEETS_FROM_API", "true").lower() in ("1", "true", "yes")
+NO_CONTENT_RESPONSE = os.environ.get("NO_CONTENT_RESPONSE", "true" if WRITE_TO_SHEETS_FROM_API else "false").lower() in ("1", "true", "yes")
+RETURN_UPLOADED_IMAGES = os.environ.get("RETURN_UPLOADED_IMAGES", "false").lower() in ("1", "true", "yes")
+
+# NEW: ensure header row exists and matches your target
+SHEET_ENSURE_HEADER = os.environ.get("SHEET_ENSURE_HEADER", "true").lower() in ("1", "true", "yes")
+SHEET_HEADER = ["file_name", "page_number", "image_number", "image_url"]
+
+
 
 def _client_cfg() -> Dict[str, Any]:
     if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI):
