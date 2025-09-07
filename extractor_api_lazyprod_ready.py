@@ -345,6 +345,11 @@ def append_rows_to_sheet(rows: List[List[Any]]):
         api_logger.warning("[SHEETS] SHEET_ID not set; skipping append.")
         return
     _, sheets = get_services()
+
+    # NEW: make sure header row exists
+    if SHEET_ENSURE_HEADER:
+        ensure_sheet_header()
+
     body = {"values": rows}
     res = sheets.spreadsheets().values().append(
         spreadsheetId=SHEET_ID,
@@ -354,6 +359,7 @@ def append_rows_to_sheet(rows: List[List[Any]]):
         body=body,
     ).execute()
     api_logger.debug(f"[SHEETS] append rows={len(rows)} -> updatedRange={res.get('updates', {}).get('updatedRange')}")
+
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 @app.get("/health")
