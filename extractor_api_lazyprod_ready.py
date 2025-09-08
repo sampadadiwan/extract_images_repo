@@ -295,6 +295,14 @@ NO_CONTENT_RESPONSE = os.environ.get(
 ).lower() in ("1", "true", "yes")
 RETURN_UPLOADED_IMAGES = os.environ.get("RETURN_UPLOADED_IMAGES", "false").lower() in ("1", "true", "yes")
 
+def _direct_image_url(file_id: str, prefer_thumbnail: bool = False, max_edge: int = 1200) -> str:
+    # Direct bytes (works for <img src>)
+    direct = f"https://drive.google.com/uc?id={file_id}"
+    # JPEG preview (handy fallback for odd formats / faster previews)
+    thumb  = f"https://drive.google.com/thumbnail?id={file_id}&sz=w{max_edge}"
+    return thumb if prefer_thumbnail else direct
+
+
 
 def upload_png_to_drive(png_bytes: bytes, filename: str, folder_id: Optional[str]) -> str:
     drive, _ = get_services()
@@ -319,7 +327,11 @@ def upload_png_to_drive(png_bytes: bytes, filename: str, folder_id: Optional[str
     file_id = file.get("id")
     owners = file.get("owners", [])
     owner_email = owners[0].get("emailAddress") if owners else "?"
-    link = file.get("webViewLink") or file.get("webContentLink") or f"https://drive.google.com/file/d/{file_id}/view"
+    
+
+    # << CHANGED: store a direct image URL (not /view) >>
+    link = _direct_image_url(file_id)  # e.g., https://drive.google.com/uc?id=<FILE_ID>
+    #link = file.get("webViewLink") or file.get("webContentLink") or f"https://drive.google.com/file/d/{file_id}/view"
 
     api_logger.debug(
         "[DRIVE] uploaded name=%r id=%s parents=%s driveId=%s owner=%s link=%s",
