@@ -102,7 +102,11 @@ RETURN_UPLOADED_IMAGES = os.environ.get("RETURN_UPLOADED_IMAGES", "false").lower
 
 # NEW: ensure header row exists and matches your target
 SHEET_ENSURE_HEADER = os.environ.get("SHEET_ENSURE_HEADER", "true").lower() in ("1", "true", "yes")
+"""
 SHEET_HEADER = ["file_name", "page_number", "image_number", "image_url"]
+"""
+
+SHEET_HEADER = ["file_name", "page_number", "image_id", "image_url"]
 
 
 
@@ -486,19 +490,26 @@ def process_convertapi_json(
                 for ci, rgb in enumerate(crops, start=1):
                     pil = Image.fromarray(rgb)
                     crop_bytes = _pil_to_png_bytes(pil)
-                    out_name = f"{os.path.splitext(pdf_name)[0]}_p{page_num:02d}_img{ci:02d}.png"
+                    stem = os.path.splitext(pdf_name)[0]        # e.g. "chapter_1"
+                    image_id = f"{stem}_{int(page_num)}_{int(ci)}"  # e.g. "chapter_1_2_1"
+                    out_name = f"{image_id}.png"                     # (optional, for tidy Drive names)
                     link = upload_png_to_drive(crop_bytes, out_name, None)
 
-                    rows.append([pdf_name, page_num, ci, link])
-                    total_crops += 1
-
+                    # Option A: store the string in the existing 3rd column
+                    rows.append([pdf_name, int(page_num), image_id, link])
+                    
+                    # If you’ve set RETURN_UPLOADED_IMAGES=true and want it in the response too:
                     if RETURN_UPLOADED_IMAGES:
                         uploaded_images.append({
                             "file_name": out_name,
                             "page_number": int(page_num),
                             "image_number": int(ci),
+                            "image_id": image_id,         # <-- add this
                             "image_url": link,
                         })
+                    total_crops += 1
+
+                  
 
             api_logger.debug(f"[PAGE] {run_id} i={i} done in {(time.time()-pstart)*1000.0:.1f} ms")
         except Exception as e:
