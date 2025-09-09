@@ -203,7 +203,17 @@ class FileItem(BaseModel):
 
 
 class ExtractionSettings(BaseModel):
-    sat_thr: int = 28
+    sat_thr: int = 0
+    v_min: int = 50
+    merge_pct: float = 2.0
+    min_area_ratio: float = 0.004
+    max_area_ratio: float = 0.90
+    text_threshold: float = 0.9
+    bottom_trim_pct: int = 0
+    pad: int = 6
+
+"""
+ sat_thr: int = 28
     v_min: int = 80
     merge_pct: float = 2.0
     min_area_ratio: float = 0.004
@@ -211,6 +221,7 @@ class ExtractionSettings(BaseModel):
     text_threshold: float = 0.08
     bottom_trim_pct: int = 8
     pad: int = 6
+"""
 
 
 class ConvertApiPayload(BaseModel):
